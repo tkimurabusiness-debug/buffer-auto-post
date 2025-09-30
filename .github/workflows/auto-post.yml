@@ -1,0 +1,51 @@
+name: Buffer Auto Post
+
+on:
+  schedule:
+    # JST 19:30 / 20:30 / 21:30 → UTC 10:30 / 11:30 / 12:30
+    - cron: "30 10 * * *"
+    - cron: "30 11 * * *"
+    - cron: "30 12 * * *"
+  workflow_dispatch:  # 手動実行も可
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install gspread google-auth playwright
+          python -m playwright install chromium
+
+      - name: Restore secrets to files
+        # Secrets → 実ファイルに復元（buffer_scheduler.py がこのファイルを読む）
+        run: |
+          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > creds.json
+          # Bufferセッションがあれば書き出す（無ければ空で作る）
+          if [ -n "${{ secrets.BUFFER_SESSION_JSON }}" ]; then
+            echo "${{ secrets.BUFFER_SESSION_JSON }}" > buffer_session.json
+          else
+            echo '{}' > buffer_session.json
+          fi
+
+      - name: Run scheduler (headless)
+        env:
+          # スクリプトが読む環境変数
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          WORKSHEET_NAME: ${{ secrets.WORKSHEET_NAME }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/creds.json
+          BUFFER_SESSION_PATH: ${{ github.workspace }}/buffer_session.json
+          HASHTAG_WORD: 看護師
+        run: |
+          python buffer_scheduler.py

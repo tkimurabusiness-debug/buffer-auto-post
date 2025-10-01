@@ -29,19 +29,19 @@ jobs:
           python -m playwright install chromium
 
       - name: Restore secrets to files
-        # Secrets → 実ファイルに復元（buffer_scheduler.py がこのファイルを読む）
         run: |
+          # Google認証JSONを書き出し
           echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > creds.json
-          # Bufferセッションがあれば書き出す（無ければ空で作る）
-          if [ -n "${{ secrets.BUFFER_SESSION_JSON }}" ]; then
-            echo "${{ secrets.BUFFER_SESSION_JSON }}" > buffer_session.json
+
+          # Bufferセッションをbase64から復元
+          if [ -n "${{ secrets.BUFFER_SESSION_BASE64 }}" ]; then
+            echo "${{ secrets.BUFFER_SESSION_BASE64 }}" | base64 -d > buffer_session.json
           else
             echo '{}' > buffer_session.json
           fi
 
       - name: Run scheduler (headless)
         env:
-          # スクリプトが読む環境変数
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           WORKSHEET_NAME: ${{ secrets.WORKSHEET_NAME }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/creds.json

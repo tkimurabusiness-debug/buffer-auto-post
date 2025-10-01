@@ -30,9 +30,8 @@ jobs:
 
       - name: Restore secrets to files
         run: |
-          # Google認証JSONを書き出し
-          echo "${{ secrets.GOOGLE_CREDENTIALS_B64 }}" | base64 -d > creds.json
-
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > creds.json
+          
           # Bufferセッションを分割されたパーツから復元
           if [ -n "${{ secrets.BUFFER_SESSION_PART1 }}" ]; then
             echo "${{ secrets.BUFFER_SESSION_PART1 }}" > buffer_part1.b64

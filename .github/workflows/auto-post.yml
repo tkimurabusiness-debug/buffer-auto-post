@@ -33,9 +33,12 @@ jobs:
           # Google認証JSONを書き出し
           echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > creds.json
 
-          # Bufferセッションをbase64から復元
-          if [ -n "${{ secrets.BUFFER_SESSION_BASE64 }}" ]; then
-            echo "${{ secrets.BUFFER_SESSION_BASE64 }}" | base64 -d > buffer_session.json
+          # Bufferセッションを分割されたパーツから復元
+          if [ -n "${{ secrets.BUFFER_SESSION_PART1 }}" ]; then
+            echo "${{ secrets.BUFFER_SESSION_PART1 }}" > buffer_part1.b64
+            echo "${{ secrets.BUFFER_SESSION_PART2 }}" > buffer_part2.b64
+            echo "${{ secrets.BUFFER_SESSION_PART3 }}" > buffer_part3.b64
+            cat buffer_part1.b64 buffer_part2.b64 buffer_part3.b64 | base64 -d > buffer_session.json
           else
             echo '{}' > buffer_session.json
           fi

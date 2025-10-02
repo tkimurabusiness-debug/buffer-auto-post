@@ -1,1 +1,57 @@
-aa
+name: Buffer Auto Post Ruka
+
+on:
+  schedule:
+    # JST 17:00 / 18:00 / 19:00 / 20:00 / 21:00 / 22:00
+    # → UTC 08:00 / 09:00 / 10:00 / 11:00 / 12:00 / 13:00
+    - cron: "0 8 * * *"
+    - cron: "0 9 * * *"
+    - cron: "0 10 * * *"
+    - cron: "0 11 * * *"
+    - cron: "0 12 * * *"
+    - cron: "0 13 * * *"
+  workflow_dispatch:  # 手動実行も可
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install gspread google-auth playwright
+          python -m playwright install chromium
+
+      - name: Restore secrets to files
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > creds.json
+          
+          # Bufferセッションを分割されたパーツから復元（Ruka用）
+          if [ -n "${{ secrets.BUFFER_SESSION_RUKA_PART1 }}" ]; then
+            echo "${{ secrets.BUFFER_SESSION_RUKA_PART1 }}" > buffer_ruka_part1.b64
+            echo "${{ secrets.BUFFER_SESSION_RUKA_PART2 }}" > buffer_ruka_part2.b64
+            echo "${{ secrets.BUFFER_SESSION_RUKA_PART3 }}" > buffer_ruka_part3.b64
+            cat buffer_ruka_part1.b64 buffer_ruka_part2.b64 buffer_ruka_part3.b64 | base64 -d > buffer_session_ruka.json
+          else
+            echo '{}' > buffer_session_ruka.json
+          fi
+
+      - name: Run scheduler (headless)
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          WORKSHEET_NAME: 看護師自動投稿ruka
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/creds.json
+          BUFFER_SESSION_PATH: ${{ github.workspace }}/buffer_session_ruka.json
+          HASHTAG_WORD: 看護師
+        run: |
+          python buffer_scheduler.py

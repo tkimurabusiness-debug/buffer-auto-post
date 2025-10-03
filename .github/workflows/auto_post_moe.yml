@@ -1,1 +1,57 @@
+name: Buffer Auto Post Ruka
 
+on:
+  schedule:
+    # JST 05:00 / 05:10 / 05:20 / 05:30 / 05:40 / 05:50
+    # UTC換算 (JST-9h) → 20:00 / 20:10 / 20:20 / 20:30 / 20:40 / 20:50
+    - cron: "0 20 * * *"
+    - cron: "10 20 * * *"
+    - cron: "20 20 * * *"
+    - cron: "30 20 * * *"
+    - cron: "40 20 * * *"
+    - cron: "50 20 * * *"
+  workflow_dispatch:  # 手動実行も可
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install gspread google-auth playwright
+          python -m playwright install chromium
+
+      - name: Restore secrets to files
+        run: |
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > creds.json
+          
+          # Bufferセッションを分割されたパーツから復元（Ruka用）
+          if [ -n "${{ secrets.BUFFER_SESSION_MOE_PART1 }}" ]; then
+            echo "${{ secrets.BUFFER_SESSION_MOE_PART1 }}" > buffer_moe_part1.b64
+            echo "${{ secrets.BUFFER_SESSION_MOE_PART2 }}" > buffer_moe_part2.b64
+            echo "${{ secrets.BUFFER_SESSION_MOE_PART3 }}" > buffer_moe_part3.b64
+            cat buffer_moe_part1.b64 buffer_moe_part2.b64 buffer_moe_part3.b64 | base64 -d > buffer_session_moe.json
+          else
+            echo '{}' > buffer_session_ruka.json
+          fi
+
+      - name: Run scheduler (headless)
+        env:
+          SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
+          WORKSHEET_NAME: 看護師自動投稿moe
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/creds.json
+          BUFFER_SESSION_PATH: ${{ github.workspace }}/buffer_session_ruka.json
+          HASHTAG_WORD: 看護師
+        run: |
+          python buffer_scheduler.py

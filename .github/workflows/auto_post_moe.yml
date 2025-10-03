@@ -1,4 +1,4 @@
-name: Buffer Auto Post Ruka
+name: Buffer Auto Post Moe
 
 on:
   schedule:
@@ -43,7 +43,7 @@ jobs:
             echo "${{ secrets.BUFFER_SESSION_MOE_PART3 }}" > buffer_moe_part3.b64
             cat buffer_moe_part1.b64 buffer_moe_part2.b64 buffer_moe_part3.b64 | base64 -d > buffer_session_moe.json
           else
-            echo '{}' > buffer_session_ruka.json
+            echo '{}' > buffer_session_moe.json
           fi
 
       - name: Run scheduler (headless)
@@ -51,7 +51,7 @@ jobs:
           SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
           WORKSHEET_NAME: 看護師自動投稿moe
           GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/creds.json
-          BUFFER_SESSION_PATH: ${{ github.workspace }}/buffer_session_ruka.json
+          BUFFER_SESSION_PATH: ${{ github.workspace }}/buffer_session_moe.json
           HASHTAG_WORD: 看護師
         run: |
           python buffer_scheduler.py
